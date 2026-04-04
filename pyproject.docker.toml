@@ -1,0 +1,17 @@
+[project]
+name = "deep-learning"
+version = "0.1.0"
+requires-python = ">=3.10,<3.11"
+
+dependencies = [
+    "keras-tuner>=1.4.8",
+    "matplotlib>=3.10.8",
+    "numpy>=1.23,<2",
+    "opencv-python>=4.11.0.86",
+    "pandas>=2.3.3",
+    "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
+
+    # ✅ No OS restriction (Linux environment)
+    "tensorflow==2.10",
+]
