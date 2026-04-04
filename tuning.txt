@@ -1,0 +1,159 @@
+ok let me share my whole code with you and you need to just give me a industry grade pipeline 
+just focus on the hypertunning one not the whole 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt 
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+import kerastuner as kt
+from tensorflow import keras
+from keras.layers import Dense, Dropout
+from keras.models import Sequential
+
+df = pd.read_csv(r'C:\Users\lenovo\OneDrive\Desktop\deep-learning\datasets\student_placement_realistic_balanced.csv')
+df.head()
+df.info()
+df.isnull().sum()
+df.duplicated().sum()
+plt.boxplot(df)
+plt.show()
+df.corr()['placed']
+sns.heatmap(df.corr(), annot=True, cmap='coolwarm')
+sns.boxenplot(x='placed', y='cgpa', data=df)
+X = df.drop('placed', axis=1)
+y = df['placed'].values
+X.head()
+scaler = StandardScaler()
+X_scaler = scaler.fit_transform(X)
+X_scaler[0]
+X_train, X_test ,y_train, y_test = train_test_split(
+    X_scaler, y , random_state=42, test_size=0.2
+)
+model = Sequential()
+
+model.add(Dense(32, activation='relu', input_dim=5))
+model.add(Dense(1, activation='sigmoid'))
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+history = model.fit(
+    X_train,
+    y_train,
+    batch_size=32,
+    epochs=50,
+    validation_data=(X_test, y_test)
+)
+plt.plot(history.history['accuracy'], label='train accuracy')
+plt.plot(history.history['val_accuracy'], label='val accuracy')
+plt.legend()
+plt.title('Accuracy')
+plt.show()
+plt.plot(history.history['loss'], label='train loss')
+plt.plot(history.history['val_loss'], label='val loss')
+plt.legend()
+plt.title("Loss")
+plt.show()
+new_student = pd.DataFrame({
+    'cgpa': [8],
+    "aptitude_score": [33],
+    "projects": [4],
+    "internships": [2],
+    "communication_score": [65]
+})
+
+new_student_array = new_student.values
+new_scaled = scaler.transform(new_student_array)
+
+prob = model.predict(new_scaled)
+
+prediction = (prob > 0.5).astype(int)
+
+print("Prediction (0 = Not Placed, 1 = Placed):", prediction[0][0])
+print("Probability of Placement:", prob[0][0])
+## hyper tune  the model
+model with activations, hidden layes (1-10) , node (8-128), optimizers (relu, rmsprop, sgd, adam, nadam, adadelta)
+def build_model(hp):
+    model = Sequential()
+
+    num_layers = hp.Int('num_layers', min_value=1, max_value=10)
+    
+    for i in range(num_layers):
+        units = hp.Int(f'units_{i}', min_value=8, max_value=128, step=8)
+        activation = hp.Choice(f'activation_{i}', ['relu', 'tanh', 'sigmoid'])
+
+        dropout = hp.Float(f'dropout_{i}', min_value=0.1, max_value=0.6, step=0.1)
+
+        if i == 0:
+            model.add(Dense(units, activation=activation, input_dim=5))
+        else:
+            model.add(Dense(units, activation=activation))
+        
+        model.add(Dropout(dropout))
+    
+    model.add(Dense(1, activation='sigmoid'))
+
+    optimizer = hp.Choice('optimizer', ['rmsprop', 'adam', 'sgd', 'adadeleta', 'nadam'])
+
+    model.compile(
+        optimizer=optimizer,
+        loss='binary_crossentropy',
+        metrics=['accuracy']
+    )
+    return model
+    
+tuner = kt.RandomSearch(
+    build_model,
+    objective='val_accuracy',
+    max_trials=30,
+    directory='test-model',
+    project_name='hyper_model'  
+)
+tuner.search(
+    X_train, 
+    y_train,
+    epochs=5,
+    validation_data=(X_test, y_test)
+)
+tuner.get_best_hyperparameters()[0].values
+model = tuner.get_best_models(num_models=1)[0]
+history = model.fit(
+    X_train,
+    y_train,
+    epochs=50,
+    initial_epoch=5,
+    batch_size=32,
+    validation_data=(X_test, y_test)
+)
+# Accuracy
+plt.plot(history.history['accuracy'], label='train accuracy')
+plt.plot(history.history['val_accuracy'], label='val accuracy')
+plt.legend()
+plt.title("Accuracy")
+plt.show()
+
+# Loss
+plt.plot(history.history['loss'], label='train loss')
+plt.plot(history.history['val_loss'], label='val loss')
+plt.legend()
+plt.title("Loss")
+plt.show()
+new_student = pd.DataFrame({
+    'cgpa': [8],
+    "aptitude_score": [33],
+    "projects": [4],
+    "internships": [2],
+    "communication_score": [65]
+})
+
+new_student_array = new_student.values
+new_scaled = scaler.transform(new_student)
+
+prob = model.predict(new_scaled)
+
+prediction = (prob > 0.5).astype(int)
+
+print("Prediction (0 = Not Placed, 1 = Placed):", prediction[0][0])
+print("Probability of Placement:", prob[0][0])
